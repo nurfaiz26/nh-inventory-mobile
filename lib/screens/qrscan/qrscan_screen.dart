@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
+import 'package:nh_manajemen_inventory/screens/home/home_screen.dart';
 import 'package:nh_manajemen_inventory/screens/inventaris/inventaris_form_screen.dart';
 
 class QrscanScreen extends StatefulWidget {
@@ -17,6 +18,8 @@ class _QrscanScreenState extends State<QrscanScreen>
     with WidgetsBindingObserver {
   Barcode? _barcode;
   MobileScannerController cameraController = MobileScannerController();
+  bool _isVisible = false;
+  final TextEditingController kodeController = TextEditingController();
 
   Widget _buildBarcode(Barcode? value) {
     if (value == null) {
@@ -27,10 +30,10 @@ class _QrscanScreenState extends State<QrscanScreen>
       );
     }
 
-    return Text(
-      value.displayValue ?? 'No display value.',
+    return const Text(
+      'No display value.',
       overflow: TextOverflow.fade,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: Colors.white),
     );
   }
 
@@ -67,10 +70,44 @@ class _QrscanScreenState extends State<QrscanScreen>
         );
       } else {
         // Handle error
-        _showError('Failed to load data');
+        _showError('Error: Gagal Memuat Data!, Pastikan Kode/QR Sesuai!');
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const HomeScreen(),
+          ),
+        );
+        // Navigator.pushReplacement(
+        //     context, MaterialPageRoute(builder: (context) => const HomeScreen()));
       }
     } catch (e) {
-      _showError('Error: $e');
+      _showError(
+          'Error:  Pastikan Scan QR Code Dari Aplikasi Manajemen Inventaris!');
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const HomeScreen(),
+        ),
+      );
+      // Navigator.pushReplacement(
+      //     context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+    }
+  }
+
+  void _toggleVisibility() {
+    setState(() {
+      _isVisible = !_isVisible;
+    });
+  }
+
+  void submitKode() {
+    if (kodeController.text != '') {
+      const url = "https://assets.itnh.systems/api/inventaris?kode=";
+      _fetchData(url + kodeController.text);
+    } else {
+      _showError('Kode Inventaris Tidak Boleh Kosong!');
     }
   }
 
@@ -92,6 +129,23 @@ class _QrscanScreenState extends State<QrscanScreen>
           color: Colors.white,
         ),
         backgroundColor: const Color(0xFF099AA7),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: _toggleVisibility,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  _isVisible ? 'TUTUP' : 'KODE',
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ),
+          )
+        ],
       ),
       body: Stack(
         children: [
@@ -113,6 +167,88 @@ class _QrscanScreenState extends State<QrscanScreen>
               ),
             ),
           ),
+          if (_isVisible) // Conditionally render the component
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: Colors.grey.withOpacity(0.4),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(20.0),
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'KODE INVENTARIS',
+                        style: TextStyle(
+                            color: Color(0xFF099AA7),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16),
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      TextField(
+                        controller: kodeController,
+                        decoration: InputDecoration(
+                          labelText: 'Kode Inventaris',
+                          labelStyle:
+                              const TextStyle(color: Colors.grey, fontSize: 12),
+                          hintText: 'NH 100.01.01.0001',
+                          hintStyle:
+                              const TextStyle(color: Colors.grey, fontSize: 12),
+                          floatingLabelStyle: const TextStyle(
+                              color: Color(0xFF099AA7), fontSize: 12),
+                          border: OutlineInputBorder(
+                            borderSide:
+                                const BorderSide(color: Color(0xFF099AA7)),
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide:
+                                const BorderSide(color: Color(0xFF099AA7)),
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      // Login Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            submitKode();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                            backgroundColor: const Color(0xFF099AA7),
+                            padding: const EdgeInsets.all(4),
+                          ),
+                          child: const Text(
+                            'Submit',
+                            style: TextStyle(
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

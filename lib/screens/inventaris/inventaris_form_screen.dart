@@ -49,6 +49,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
   late List<Unit> units;
   late List<Wilayah> wilayahs;
   File? foto;
+  final _formKey = GlobalKey<FormState>();
 
   List<Merk> filteredMerks = [];
   List<Seri> filteredSeris = [];
@@ -241,6 +242,37 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     seris = fetchSeris(widget.data);
     units = fetchUnits(widget.data);
     wilayahs = fetchWilayah(widget.data);
+  }
+
+  void _showConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Submission'),
+          content: Text('Are you sure you want to submit the form?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: Text('Submit'),
+              onPressed: () {
+                // Handle form submission
+                if (_formKey.currentState!.validate()) {
+                  // Process the data
+                  print('Form submitted: $_inputData');
+                  Navigator.of(context).pop(); // Close the dialog
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
