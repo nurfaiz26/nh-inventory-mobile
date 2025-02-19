@@ -171,20 +171,31 @@ class _QrscanScreenState extends State<QrscanScreen>
             Container(
               width: double.infinity,
               height: double.infinity,
-              color: Colors.grey.withOpacity(0.4),
+              color: Colors.grey.withOpacity(0.6),
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(10),
                   width: MediaQuery.of(context).size.width * 0.8,
-                  height: 200,
+                  height: 240,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                              onPressed: () => _toggleVisibility(),
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.red,
+                              )),
+                        ],
+                      ),
                       const Text(
                         'KODE INVENTARIS',
                         style: TextStyle(
@@ -195,26 +206,29 @@ class _QrscanScreenState extends State<QrscanScreen>
                       const SizedBox(
                         height: 10,
                       ),
-                      TextField(
-                        controller: kodeController,
-                        decoration: InputDecoration(
-                          labelText: 'Kode Inventaris',
-                          labelStyle:
-                              const TextStyle(color: Colors.grey, fontSize: 12),
-                          hintText: 'NH 100.01.01.0001',
-                          hintStyle:
-                              const TextStyle(color: Colors.grey, fontSize: 12),
-                          floatingLabelStyle: const TextStyle(
-                              color: Color(0xFF099AA7), fontSize: 12),
-                          border: OutlineInputBorder(
-                            borderSide:
-                                const BorderSide(color: Color(0xFF099AA7)),
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide:
-                                const BorderSide(color: Color(0xFF099AA7)),
-                            borderRadius: BorderRadius.circular(10.0),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                        child: TextField(
+                          controller: kodeController,
+                          decoration: InputDecoration(
+                            labelText: 'Kode Inventaris',
+                            labelStyle: const TextStyle(
+                                color: Colors.grey, fontSize: 12),
+                            hintText: 'NH 100.01.01.0001',
+                            hintStyle: const TextStyle(
+                                color: Colors.grey, fontSize: 12),
+                            floatingLabelStyle: const TextStyle(
+                                color: Color(0xFF099AA7), fontSize: 12),
+                            border: OutlineInputBorder(
+                              borderSide:
+                                  const BorderSide(color: Color(0xFF099AA7)),
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide:
+                                  const BorderSide(color: Color(0xFF099AA7)),
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
                           ),
                         ),
                       ),
@@ -222,7 +236,8 @@ class _QrscanScreenState extends State<QrscanScreen>
                         height: 10,
                       ),
                       // Login Button
-                      SizedBox(
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {

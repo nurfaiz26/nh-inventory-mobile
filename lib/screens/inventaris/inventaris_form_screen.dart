@@ -176,7 +176,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
 
       // Convert the compressed image back to bytes
       final List<int> compressedBytes = img.encodeJpg(compressedImage,
-          quality: 85); // Adjust quality as needed
+          quality: 50); // Adjust quality as needed
 
       request.files.add(http.MultipartFile.fromBytes(
         'foto', // The name of the field in the API
@@ -213,7 +213,14 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
         ),
       );
 
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+      // Navigator.pushReplacement(
+      //     context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (Route<dynamic> route) => false,
+      );
+
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -224,6 +231,49 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
         ),
       );
     }
+  }
+
+  void _showConfirmationDialog(String idInventaris, String telepon) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Konfirmasi Update',
+            style: TextStyle(
+                color: Color(0xFF099AA7), fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'Semua update akan tercatat beserta informasi peng-update! Lanjutkan?',
+            style: TextStyle(
+              color: Color(0xFF099AA7),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: const Text(
+                'Update',
+                style: TextStyle(color: Colors.green),
+              ),
+              onPressed: () {
+                // Handle form submission
+                postData(idInventaris, telepon);
+
+                if (_formKey.currentState!.validate()) {
+                  Navigator.of(context).pop(); // Close the dialog
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -242,37 +292,6 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     seris = fetchSeris(widget.data);
     units = fetchUnits(widget.data);
     wilayahs = fetchWilayah(widget.data);
-  }
-
-  void _showConfirmationDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Confirm Submission'),
-          content: Text('Are you sure you want to submit the form?'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-            ),
-            TextButton(
-              child: Text('Submit'),
-              onPressed: () {
-                // Handle form submission
-                if (_formKey.currentState!.validate()) {
-                  // Process the data
-                  print('Form submitted: $_inputData');
-                  Navigator.of(context).pop(); // Close the dialog
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -302,30 +321,39 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
           child: ListView(
             physics: const BouncingScrollPhysics(),
             children: [
-              Image.network(
-                widget.data['data']['inventaris']['foto'] ?? '',
-                loadingBuilder: (BuildContext context, Widget child,
-                    ImageChunkEvent? loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                              (loadingProgress.expectedTotalBytes ?? 1)
-                          : null,
-                    ),
-                  );
-                },
-                errorBuilder: (BuildContext context, Object error,
-                    StackTrace? stackTrace) {
-                  return const Center(
-                    child: Text(
-                      'Gambar Inventaris Gagal Dimuat/Tidak Ada',
-                      style: TextStyle(
-                          color: Colors.red, fontWeight: FontWeight.bold),
-                    ),
-                  );
-                },
+              Container(
+                width: double.infinity,
+                height: 200,
+                decoration:
+                    BoxDecoration(borderRadius: BorderRadius.circular(20)),
+                child: Image.network(
+                  widget.data['data']['inventaris']['foto'] != null
+                      ? 'https://assets.itnh.systems/folder-image-inventaris/' +
+                          widget.data['data']['inventaris']['foto']
+                      : '',
+                  loadingBuilder: (BuildContext context, Widget child,
+                      ImageChunkEvent? loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                (loadingProgress.expectedTotalBytes ?? 1)
+                            : null,
+                      ),
+                    );
+                  },
+                  errorBuilder: (BuildContext context, Object error,
+                      StackTrace? stackTrace) {
+                    return const Center(
+                      child: Text(
+                        'Gambar Inventaris Gagal Dimuat/Tidak Ada',
+                        style: TextStyle(
+                            color: Colors.red, fontWeight: FontWeight.bold),
+                      ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(
                 height: 10,
@@ -627,8 +655,9 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                     backgroundColor: const Color(0xFF099AA7),
                     padding: const EdgeInsets.all(15),
                   ),
-                  onPressed: () => postData(
-                      widget.data['data']['inventaris']['id'].toString(), userData!['telepon']),
+                  onPressed: () => _showConfirmationDialog(
+                      widget.data['data']['inventaris']['id'].toString(),
+                      userData!['telepon']),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
