@@ -6,6 +6,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
 import 'package:nh_manajemen_inventory/screens/home/home_screen.dart';
 import 'package:nh_manajemen_inventory/screens/inventaris/inventaris_form_screen.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/auth_provider.dart';
 
 class QrscanScreen extends StatefulWidget {
   const QrscanScreen({super.key});
@@ -37,7 +40,7 @@ class _QrscanScreenState extends State<QrscanScreen>
     );
   }
 
-  void _handleBarcode(BarcodeCapture barcodes) async {
+  void _handleBarcode(BarcodeCapture barcodes, String telepon) async {
     if (mounted) {
       setState(() {
         _barcode = barcodes.barcodes.firstOrNull;
@@ -46,7 +49,7 @@ class _QrscanScreenState extends State<QrscanScreen>
       // Fetch data from the URL obtained from the QR code
       if (_barcode != null) {
         String url = _barcode!.displayValue ?? '';
-        await _fetchData(url);
+        await _fetchData("$url?telepon=$telepon");
       }
     }
   }
@@ -102,10 +105,10 @@ class _QrscanScreenState extends State<QrscanScreen>
     });
   }
 
-  void submitKode() {
+  void submitKode(String telepon) {
     if (kodeController.text != '') {
       const url = "https://assets.itnh.systems/api/inventaris?kode=";
-      _fetchData(url + kodeController.text);
+      _fetchData("$url${kodeController.text}&telepon=$telepon");
     } else {
       _showError('Kode Inventaris Tidak Boleh Kosong!');
     }
@@ -119,6 +122,9 @@ class _QrscanScreenState extends State<QrscanScreen>
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final userData = authProvider.userData;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -151,7 +157,9 @@ class _QrscanScreenState extends State<QrscanScreen>
         children: [
           MobileScanner(
             controller: cameraController,
-            onDetect: _handleBarcode,
+            onDetect: (barcodeCapture) {
+              _handleBarcode(barcodeCapture, userData!['telepon']);
+            },
           ),
           Align(
             alignment: Alignment.bottomCenter,
@@ -241,7 +249,7 @@ class _QrscanScreenState extends State<QrscanScreen>
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
-                            submitKode();
+                            submitKode(userData!['telepon']);
                           },
                           style: ElevatedButton.styleFrom(
                             shape: RoundedRectangleBorder(
