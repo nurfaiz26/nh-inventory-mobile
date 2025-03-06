@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:image/image.dart' as img;
 import 'package:http/http.dart' as http;
@@ -58,10 +58,12 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
 
   TextEditingController penggunaController = TextEditingController();
   TextEditingController statusController = TextEditingController();
-  TextEditingController merkController = TextEditingController();
-  TextEditingController seriController = TextEditingController();
+  // TextEditingController merkController = TextEditingController();
+  // TextEditingController seriController = TextEditingController();
   TextEditingController wilayahController = TextEditingController();
   TextEditingController unitController = TextEditingController();
+  TextEditingController keteranganController = TextEditingController();
+  TextEditingController keteranganMetaController = TextEditingController();
 
   void filterMerk(String query) {
     if (query.isNotEmpty) {
@@ -125,8 +127,8 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
 
   void clearFilteredData() {
     setState(() {
-      filteredMerks.clear();
-      filteredSeris.clear();
+      // filteredMerks.clear();
+      // filteredSeris.clear();
       filteredUnits.clear();
       filteredWilayahs.clear();
     });
@@ -151,14 +153,27 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     request.headers['Content-Type'] = 'multipart/form-data';
 
     if (penggunaController.text == '' ||
-        merkController.text == '' ||
-        seriController.text == '' ||
+        // merkController.text == '' ||
+        // seriController.text == '' ||
         unitController.text == '' ||
         wilayahController.text == '' ||
         statusController.text == '') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Data Tidak Lengkap"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      return;
+    }
+
+    if (statusController.text == 'nonaktif' &&
+        keteranganController.text == '') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Data Keterangan Harus Terisi!"),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
         ),
@@ -189,12 +204,15 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
 
     // Add text field
     request.fields["pengguna"] = penggunaController.text;
-    request.fields["merk"] = merkController.text;
-    request.fields["seri"] = seriController.text;
+    // request.fields["merk"] = merkController.text;
+    // request.fields["seri"] = seriController.text;
     request.fields["unit"] = unitController.text;
     request.fields["wilayah"] = wilayahController.text;
     request.fields["status"] = statusController.text;
     request.fields["telepon"] = telepon;
+    if (keteranganController.text != '') {
+      request.fields["keterangan"] = keteranganController.text;
+    }
 
     // Send the request
     final response = await request.send();
@@ -218,16 +236,16 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
-            (Route<dynamic> route) => false,
+        (Route<dynamic> route) => false,
       );
-
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
-              '${responseData.toString()}, Pastikan Isi Input Sesuai Dengan Pilihan Yang Tersedia!'),
+              // '${responseData.toString()}, '
+                  'Pastikan Isi Input Sesuai Dengan Pilihan Yang Tersedia!'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
+          duration: Duration(seconds: 3),
         ),
       );
     }
@@ -276,17 +294,29 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     );
   }
 
+  String formatToIndonesian(double number) {
+    // Create a NumberFormat for Indonesian locale
+    final NumberFormat formatter = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: '',
+      decimalDigits: 2,
+    );
+    return "Rp. ${formatter.format(number)}";
+  }
+
   @override
   void initState() {
     super.initState();
     penggunaController.text = widget.data['data']['inventaris']['pengguna'];
     statusController.text =
         widget.data['data']['inventaris']['status'].toString();
-    merkController.text = widget.data['data']['inventaris']['merk']['nama'];
-    seriController.text = widget.data['data']['inventaris']['seri']['nama'];
+    // merkController.text = widget.data['data']['inventaris']['merk']['nama'];
+    // seriController.text = widget.data['data']['inventaris']['seri']['nama'];
     wilayahController.text =
         widget.data['data']['inventaris']['wilayah']['nama'];
-    unitController.text = widget.data['data']['inventaris']['pengguna'];
+    unitController.text = widget.data['data']['inventaris']['unit']['nama'];
+    keteranganMetaController.text =
+        widget.data['data']['inventaris']['keterangan'] ?? '';
 
     merks = fetchMerks(widget.data);
     seris = fetchSeris(widget.data);
@@ -363,6 +393,16 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
               const SizedBox(
                 height: 10,
               ),
+              metaDataText(
+                  'Merk', widget.data['data']['inventaris']['merk']['nama']),
+              const SizedBox(
+                height: 10,
+              ),
+              metaDataText(
+                  'Seri', widget.data['data']['inventaris']['seri']['nama']),
+              const SizedBox(
+                height: 10,
+              ),
               metaDataText('Yayasan', widget.data['data']['yayasan']['nama']),
               const SizedBox(
                 height: 10,
@@ -386,26 +426,35 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
               const SizedBox(
                 height: 10,
               ),
-              metaDataText('Nilai Awal',
-                  widget.data['data']['inventaris']['nilai_awal']),
+              metaDataText(
+                  'Nilai Awal',
+                  formatToIndonesian(double.parse(widget.data['data']['inventaris']['nilai_awal']))),
               const SizedBox(
                 height: 10,
               ),
               metaDataText(
-                  'Akumulasi Susut', widget.data['data']['akumulasi_susut']),
+                  'Akumulasi Susut',
+                  formatToIndonesian(double.parse(widget.data['data']['akumulasi_susut']))),
               const SizedBox(
                 height: 10,
               ),
-              metaDataText('Nilai Susut',
-                  widget.data['data']['inventaris']['nilai_susut']),
+              metaDataText(
+                  'Nilai Susut',
+                  formatToIndonesian(double.parse(widget.data['data']['inventaris']['nilai_susut']))),
               const SizedBox(
                 height: 10,
               ),
               metaDataText('Nilai Buku',
-                  widget.data['data']['inventaris']['nilai_buku']),
+                  formatToIndonesian(double.parse(widget.data['data']['inventaris']['nilai_buku']))),
               const SizedBox(
                 height: 20,
               ),
+              if (keteranganMetaController.text != '')
+                textAreaTextField(keteranganMetaController, "Keterangan", true),
+              if (keteranganMetaController.text != '')
+                const SizedBox(
+                  height: 20,
+                ),
               Row(
                 children: [
                   Flexible(
@@ -444,6 +493,9 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
               ),
               updateFormTextField(
                 penggunaController,
+                widget.data['data']['inventaris']['status'] == "nonaktif"
+                    ? false
+                    : true,
                 'Pengguna',
               ),
               const SizedBox(
@@ -454,23 +506,39 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      updateFormSelectTextField(merkController, 'Merk', merks,
-                          filteredMerks, filterMerk),
+                      // updateFormSelectTextField(merkController, 'Merk', merks,
+                      //     filteredMerks, filterMerk),
+                      // const SizedBox(
+                      //   height: 10,
+                      // ),
+                      // updateFormSelectTextField(seriController, 'Seri', seris,
+                      //     filteredSeris, filterSeri),
+                      // const SizedBox(
+                      //   height: 10,
+                      // ),
+                      updateFormSelectTextField(
+                          unitController,
+                          'Unit/Divisi',
+                          units,
+                          filteredUnits,
+                          widget.data['data']['inventaris']['status'] ==
+                                  "nonaktif"
+                              ? false
+                              : true,
+                          filterUnit),
                       const SizedBox(
                         height: 10,
                       ),
-                      updateFormSelectTextField(seriController, 'Seri', seris,
-                          filteredSeris, filterSeri),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      updateFormSelectTextField(unitController, 'Unit/Divisi',
-                          units, filteredUnits, filterUnit),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      updateFormSelectTextField(wilayahController, 'Area',
-                          wilayahs, filteredWilayahs, filterWilayah),
+                      updateFormSelectTextField(
+                          wilayahController,
+                          'Area',
+                          wilayahs,
+                          filteredWilayahs,
+                          widget.data['data']['inventaris']['status'] ==
+                                  "nonaktif"
+                              ? false
+                              : true,
+                          filterWilayah),
                       const SizedBox(
                         height: 10,
                       ),
@@ -486,13 +554,22 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          updateFormRadionButton('aktif'),
+                          updateFormRadionButton(
+                              'aktif',
+                              widget.data['data']['inventaris']['status'] ==
+                                      "nonaktif"
+                                  ? false
+                                  : true),
                           InkWell(
-                            onTap: () {
-                              setState(() {
-                                statusController.text = 'aktif';
-                              });
-                            },
+                            onTap: widget.data['data']['inventaris']
+                                        ['status'] ==
+                                    "aktif"
+                                ? () {
+                                    setState(() {
+                                      statusController.text = 'aktif';
+                                    });
+                                  }
+                                : null,
                             child: Text(
                               'Aktif',
                               style: TextStyle(
@@ -504,13 +581,22 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                           const SizedBox(
                             width: 10,
                           ),
-                          updateFormRadionButton('nonaktif'),
+                          updateFormRadionButton(
+                              'nonaktif',
+                              widget.data['data']['inventaris']['status'] ==
+                                      "nonaktif"
+                                  ? false
+                                  : true),
                           InkWell(
-                            onTap: () {
-                              setState(() {
-                                statusController.text = 'nonaktif';
-                              });
-                            },
+                            onTap: widget.data['data']['inventaris']
+                                        ['status'] ==
+                                    "aktif"
+                                ? () {
+                                    setState(() {
+                                      statusController.text = 'nonaktif';
+                                    });
+                                  }
+                                : null,
                             child: Text(
                               'Non Aktif',
                               style: TextStyle(
@@ -521,6 +607,13 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                           ),
                         ],
                       ),
+                      textAreaTextField(
+                          keteranganController,
+                          "Keterangan (Wajib Saat Non Aktif)",
+                          widget.data['data']['inventaris']['status'] ==
+                                  "nonaktif"
+                              ? true
+                              : false),
                     ],
                   ),
                   Column(
@@ -528,16 +621,16 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                       const SizedBox(
                         height: 60,
                       ),
-                      updateFormSelectList(
-                          merkController, merks, filteredMerks),
-                      const SizedBox(
-                        height: 70,
-                      ),
-                      updateFormSelectList(
-                          seriController, seris, filteredSeris),
-                      const SizedBox(
-                        height: 70,
-                      ),
+                      // updateFormSelectList(
+                      //     merkController, merks, filteredMerks),
+                      // const SizedBox(
+                      //   height: 70,
+                      // ),
+                      // updateFormSelectList(
+                      //     seriController, seris, filteredSeris),
+                      // const SizedBox(
+                      //   height: 70,
+                      // ),
                       updateFormSelectList(
                           unitController, units, filteredUnits),
                       const SizedBox(
@@ -554,17 +647,16 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  if (foto != null)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text(
-                        'Gambar',
-                        style: TextStyle(
-                            color: Color(0xFF099AA7),
-                            fontWeight: FontWeight.w400),
-                      ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      'Gambar (Opsional)',
+                      style: TextStyle(
+                          color: Color(0xFF099AA7),
+                          fontWeight: FontWeight.w400),
                     ),
-                  const SizedBox(height: 10),
+                  ),
+                  if (foto != null) const SizedBox(height: 10),
                   if (foto != null)
                     Container(
                       width: double.infinity,
@@ -588,7 +680,11 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                             backgroundColor: const Color(0xFF099AA7),
                             padding: const EdgeInsets.all(15),
                           ),
-                          onPressed: () => _pickImage(ImageSource.camera),
+                          onPressed: widget.data['data']['inventaris']
+                                      ['status'] ==
+                                  "aktif"
+                              ? () => _pickImage(ImageSource.camera)
+                              : null,
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -619,7 +715,11 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                             backgroundColor: const Color(0xFF099AA7),
                             padding: const EdgeInsets.all(15),
                           ),
-                          onPressed: () => _pickImage(ImageSource.gallery),
+                          onPressed: widget.data['data']['inventaris']
+                                      ['status'] ==
+                                  "aktif"
+                              ? () => _pickImage(ImageSource.gallery)
+                              : null,
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -655,9 +755,12 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                     backgroundColor: const Color(0xFF099AA7),
                     padding: const EdgeInsets.all(15),
                   ),
-                  onPressed: () => _showConfirmationDialog(
-                      widget.data['data']['inventaris']['id'].toString(),
-                      userData!['telepon']),
+                  onPressed: widget.data['data']['inventaris']['status'] ==
+                          "aktif"
+                      ? () => _showConfirmationDialog(
+                          widget.data['data']['inventaris']['id'].toString(),
+                          userData!['telepon'])
+                      : null,
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -724,9 +827,11 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     );
   }
 
-  Widget updateFormTextField(TextEditingController controller, String label) {
+  Widget updateFormTextField(
+      TextEditingController controller, bool isEnabled, String label) {
     return TextField(
       controller: controller,
+      enabled: isEnabled,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.grey),
@@ -748,10 +853,34 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
       String label,
       List data,
       List filteredData,
+      bool isEnabled,
       Function(String query) changeHandler) {
     return TextField(
       controller: controller,
+      enabled: isEnabled,
       onChanged: changeHandler,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.grey),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF099AA7)),
+        border: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0xFF099AA7)),
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0xFF099AA7)),
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+      ),
+    );
+  }
+
+  Widget textAreaTextField(
+      TextEditingController controller, String label, bool isEnbaled) {
+    return TextField(
+      controller: controller,
+      maxLines: null,
+      readOnly: isEnbaled,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.grey),
@@ -811,17 +940,19 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     );
   }
 
-  Widget updateFormRadionButton(String value) {
+  Widget updateFormRadionButton(String value, bool isEnabled) {
     return Radio(
       splashRadius: 0,
       activeColor: const Color(0xFF099AA7),
       value: value,
       groupValue: statusController.text,
-      onChanged: (String? value) {
-        setState(() {
-          statusController.text = value!;
-        });
-      },
+      onChanged: isEnabled
+          ? (String? value) {
+              setState(() {
+                statusController.text = value!;
+              });
+            }
+          : null,
     );
   }
 }

@@ -31,6 +31,16 @@ class HomeScreen extends StatelessWidget {
       }
     }
 
+    String formatToIndonesian(double number) {
+      // Create a NumberFormat for Indonesian locale
+      final NumberFormat formatter = NumberFormat.currency(
+        locale: 'id_ID',
+        symbol: '',
+        decimalDigits: 2,
+      );
+      return "Rp. ${formatter.format(number)}";
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -151,7 +161,7 @@ class HomeScreen extends StatelessWidget {
                           style: const TextStyle(
                               color: Color(0xFF099AA7),
                               fontWeight: FontWeight.bold)),
-                      subtitle: Text('Total Harga: ${log.totalHarga}',
+                      subtitle: Text('Total Harga: ${formatToIndonesian(double.parse(log.totalHarga))}',
                           style: const TextStyle(color: Color(0xFF099AA7))),
                     ),
                     ListTile(
