@@ -22,6 +22,7 @@ class HomeScreen extends StatelessWidget {
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
+
         List<LogTransaksi> logs = (jsonData['data'] as List)
             .map((data) => LogTransaksi.fromJson(data))
             .toList();

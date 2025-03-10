@@ -11,6 +11,9 @@ import 'package:nh_manajemen_inventory/models/Merk.dart';
 import 'package:nh_manajemen_inventory/models/Seri.dart';
 import 'package:nh_manajemen_inventory/models/Unit.dart';
 import 'package:nh_manajemen_inventory/models/Wilayah.dart';
+import 'package:nh_manajemen_inventory/models/inventaris.dart';
+import 'package:nh_manajemen_inventory/models/log_inventaris_perawatan.dart';
+import 'package:nh_manajemen_inventory/models/yayasan.dart';
 import 'package:nh_manajemen_inventory/providers/auth_provider.dart';
 import 'package:nh_manajemen_inventory/screens/home/home_screen.dart';
 import 'package:provider/provider.dart';
@@ -48,6 +51,8 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
   late List<Seri> seris;
   late List<Unit> units;
   late List<Wilayah> wilayahs;
+  late Inventaris inventaris;
+  late Yayasan yayasan;
   File? foto;
   final _formKey = GlobalKey<FormState>();
 
@@ -243,7 +248,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
         const SnackBar(
           content: Text(
               // '${responseData.toString()}, '
-                  'Pastikan Isi Input Sesuai Dengan Pilihan Yang Tersedia!'),
+              'Pastikan Isi Input Sesuai Dengan Pilihan Yang Tersedia!'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
         ),
@@ -307,21 +312,20 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
   @override
   void initState() {
     super.initState();
-    penggunaController.text = widget.data['data']['inventaris']['pengguna'];
-    statusController.text =
-        widget.data['data']['inventaris']['status'].toString();
-    // merkController.text = widget.data['data']['inventaris']['merk']['nama'];
-    // seriController.text = widget.data['data']['inventaris']['seri']['nama'];
-    wilayahController.text =
-        widget.data['data']['inventaris']['wilayah']['nama'];
-    unitController.text = widget.data['data']['inventaris']['unit']['nama'];
-    keteranganMetaController.text =
-        widget.data['data']['inventaris']['keterangan'] ?? '';
-
     merks = fetchMerks(widget.data);
     seris = fetchSeris(widget.data);
     units = fetchUnits(widget.data);
     wilayahs = fetchWilayah(widget.data);
+    inventaris = Inventaris.fromJson(widget.data['data']['inventaris']);
+    yayasan = Yayasan.fromJson(widget.data['data']['yayasan']);
+
+    penggunaController.text = inventaris.pengguna;
+    statusController.text = inventaris.status;
+    // merkController.text = inventaris.merk.nama;
+    // seriController.text = inventaris.seri.nama;
+    wilayahController.text = inventaris.wilayah.nama;
+    unitController.text = inventaris.unit.nama;
+    keteranganMetaController.text = inventaris.keterangan ?? '';
   }
 
   @override
@@ -338,7 +342,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            'Inventaris ${widget.data['data']['inventaris']['kode']}',
+            'Inventaris ${inventaris.kode}',
             style: const TextStyle(color: Colors.white),
           ),
           iconTheme: const IconThemeData(
@@ -357,9 +361,8 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                 decoration:
                     BoxDecoration(borderRadius: BorderRadius.circular(20)),
                 child: Image.network(
-                  widget.data['data']['inventaris']['foto'] != null
-                      ? 'https://assets.itnh.systems/folder-image-inventaris/' +
-                          widget.data['data']['inventaris']['foto']
+                  inventaris.foto != null
+                      ? 'https://assets.itnh.systems/folder-image-inventaris/${inventaris.foto}'
                       : '',
                   loadingBuilder: (BuildContext context, Widget child,
                       ImageChunkEvent? loadingProgress) {
@@ -388,64 +391,57 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
               const SizedBox(
                 height: 10,
               ),
-              metaDataText('Barang',
-                  widget.data['data']['inventaris']['barang']['item']['nama']),
+              metaDataText('Barang', inventaris.barang.item.nama),
               const SizedBox(
                 height: 10,
               ),
-              metaDataText(
-                  'Merk', widget.data['data']['inventaris']['merk']['nama']),
+              metaDataText('Merk', inventaris.merk.nama),
               const SizedBox(
                 height: 10,
               ),
-              metaDataText(
-                  'Seri', widget.data['data']['inventaris']['seri']['nama']),
+              metaDataText('Seri', inventaris.seri.nama),
               const SizedBox(
                 height: 10,
               ),
-              metaDataText('Yayasan', widget.data['data']['yayasan']['nama']),
+              metaDataText('Yayasan', yayasan.nama),
               const SizedBox(
                 height: 10,
               ),
-              metaDataText(
-                  'Gudang',
-                  widget.data['data']['inventaris']['barang']['gudang']
-                      ['nama']),
+              metaDataText('Gudang', inventaris.barang.gudang.nama),
               const SizedBox(
                 height: 10,
               ),
-              metaDataText(
-                  'Cabang',
-                  widget.data['data']['inventaris']['barang']['gudang']
-                      ['cabang']['nama']),
+              metaDataText('Cabang', inventaris.barang.gudang.cabang.nama),
               const SizedBox(
                 height: 10,
               ),
-              metaDataText('Penyusutan',
-                  widget.data['data']['inventaris']['penyusutan'] + ' Bulan'),
+              metaDataText('Penyusutan', inventaris.penyusutan + ' Bulan'),
               const SizedBox(
                 height: 10,
               ),
-              metaDataText(
-                  'Nilai Awal',
-                  formatToIndonesian(double.parse(widget.data['data']['inventaris']['nilai_awal']))),
+              metaDataText('Nilai Awal',
+                  formatToIndonesian(double.parse(inventaris.nilaiAwal))),
               const SizedBox(
                 height: 10,
               ),
               metaDataText(
                   'Akumulasi Susut',
-                  formatToIndonesian(double.parse(widget.data['data']['akumulasi_susut']))),
+                  formatToIndonesian(
+                      double.parse(widget.data['data']['akumulasi_susut']))),
               const SizedBox(
                 height: 10,
               ),
               metaDataText(
                   'Nilai Susut',
-                  formatToIndonesian(double.parse(widget.data['data']['inventaris']['nilai_susut']))),
+                  formatToIndonesian(
+                      double.parse(widget.data['data']['nilai_susut']))),
               const SizedBox(
                 height: 10,
               ),
-              metaDataText('Nilai Buku',
-                  formatToIndonesian(double.parse(widget.data['data']['inventaris']['nilai_buku']))),
+              metaDataText(
+                  'Nilai Buku',
+                  formatToIndonesian(
+                      double.parse(widget.data['data']['nilai_buku']))),
               const SizedBox(
                 height: 20,
               ),
@@ -493,9 +489,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
               ),
               updateFormTextField(
                 penggunaController,
-                widget.data['data']['inventaris']['status'] == "nonaktif"
-                    ? false
-                    : true,
+                inventaris.status == "nonaktif" ? false : true,
                 'Pengguna',
               ),
               const SizedBox(
@@ -521,10 +515,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                           'Unit/Divisi',
                           units,
                           filteredUnits,
-                          widget.data['data']['inventaris']['status'] ==
-                                  "nonaktif"
-                              ? false
-                              : true,
+                          inventaris.status == "nonaktif" ? false : true,
                           filterUnit),
                       const SizedBox(
                         height: 10,
@@ -534,10 +525,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                           'Area',
                           wilayahs,
                           filteredWilayahs,
-                          widget.data['data']['inventaris']['status'] ==
-                                  "nonaktif"
-                              ? false
-                              : true,
+                          inventaris.status == "nonaktif" ? false : true,
                           filterWilayah),
                       const SizedBox(
                         height: 10,
@@ -554,16 +542,10 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          updateFormRadionButton(
-                              'aktif',
-                              widget.data['data']['inventaris']['status'] ==
-                                      "nonaktif"
-                                  ? false
-                                  : true),
+                          updateFormRadionButton('aktif',
+                              inventaris.status == "nonaktif" ? false : true),
                           InkWell(
-                            onTap: widget.data['data']['inventaris']
-                                        ['status'] ==
-                                    "aktif"
+                            onTap: inventaris.status == "aktif"
                                 ? () {
                                     setState(() {
                                       statusController.text = 'aktif';
@@ -581,16 +563,10 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                           const SizedBox(
                             width: 10,
                           ),
-                          updateFormRadionButton(
-                              'nonaktif',
-                              widget.data['data']['inventaris']['status'] ==
-                                      "nonaktif"
-                                  ? false
-                                  : true),
+                          updateFormRadionButton('nonaktif',
+                              inventaris.status == "nonaktif" ? false : true),
                           InkWell(
-                            onTap: widget.data['data']['inventaris']
-                                        ['status'] ==
-                                    "aktif"
+                            onTap: inventaris.status == "aktif"
                                 ? () {
                                     setState(() {
                                       statusController.text = 'nonaktif';
@@ -610,10 +586,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                       textAreaTextField(
                           keteranganController,
                           "Keterangan (Wajib Saat Non Aktif)",
-                          widget.data['data']['inventaris']['status'] ==
-                                  "nonaktif"
-                              ? true
-                              : false),
+                          inventaris.status == "nonaktif" ? true : false),
                     ],
                   ),
                   Column(
@@ -680,9 +653,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                             backgroundColor: const Color(0xFF099AA7),
                             padding: const EdgeInsets.all(15),
                           ),
-                          onPressed: widget.data['data']['inventaris']
-                                      ['status'] ==
-                                  "aktif"
+                          onPressed: inventaris.status == "aktif"
                               ? () => _pickImage(ImageSource.camera)
                               : null,
                           child: const Row(
@@ -715,9 +686,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                             backgroundColor: const Color(0xFF099AA7),
                             padding: const EdgeInsets.all(15),
                           ),
-                          onPressed: widget.data['data']['inventaris']
-                                      ['status'] ==
-                                  "aktif"
+                          onPressed: inventaris.status == "aktif"
                               ? () => _pickImage(ImageSource.gallery)
                               : null,
                           child: const Row(
@@ -755,11 +724,9 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                     backgroundColor: const Color(0xFF099AA7),
                     padding: const EdgeInsets.all(15),
                   ),
-                  onPressed: widget.data['data']['inventaris']['status'] ==
-                          "aktif"
+                  onPressed: inventaris.status == "aktif"
                       ? () => _showConfirmationDialog(
-                          widget.data['data']['inventaris']['id'].toString(),
-                          userData!['telepon'])
+                          inventaris.id.toString(), userData!['telepon'])
                       : null,
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -779,6 +746,76 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                   ),
                 ),
               ),
+              const SizedBox(
+                height: 20,
+              ),
+              inventaris.kartuPerawatan != null
+                  ? Column(
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                    border: Border(
+                                        bottom: BorderSide(
+                                            color: Color(0xFF099AA7),
+                                            width: 2))),
+                              ),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                'KARTU PERAWATAN',
+                                style: TextStyle(
+                                  color: Color(0xFF099AA7),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Flexible(
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                    border: Border(
+                                  bottom: BorderSide(
+                                    color: Color(0xFF099AA7),
+                                    width: 2,
+                                  ),
+                                )),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        const Row(
+                          children: [
+                            Text('List Inventaris', textAlign: TextAlign.start, style: TextStyle(color: Color(0xFF099AA7)),),
+                          ],
+                        ),
+                        for (int i = 0;
+                            i <
+                                inventaris.kartuPerawatan!
+                                    .logInvetarisPerawatan!.length;
+                            i++)
+                          Column(
+                            children: [
+                              inventarisExpansionTile(inventaris
+                                  .kartuPerawatan!.logInvetarisPerawatan![i]),
+                              const SizedBox(height: 10,),
+                            ],
+                          ),
+
+                        const Row(
+                          children: [
+                            Text('List Perawatan', textAlign: TextAlign.start, style: TextStyle(color: Color(0xFF099AA7)),),
+                          ],
+                        ),
+                        // inventaris.kartuPerawatan
+                      ],
+                    )
+                  : const SizedBox(),
             ],
           ),
         ),
@@ -953,6 +990,46 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
               });
             }
           : null,
+    );
+  }
+
+  Widget inventarisExpansionTile(LogInventarisPerawatan logInventaris) {
+    return ExpansionTile(
+      title: Text(logInventaris.inventarisPerawatan.kode,
+          style: const TextStyle(
+              color: Color(0xFF099AA7), fontWeight: FontWeight.bold)),
+      subtitle: Text(
+        logInventaris.inventarisPerawatan.barang.item.nama,
+        style: const TextStyle(color: Color(0xFF099AA7)),
+      ),
+      trailing: const Icon(
+        Icons.keyboard_arrow_down,
+        color: Color(0xFF099AA7),
+      ),
+      children: [
+        ListTile(
+          leading: const SizedBox(),
+          title: Text('Merk: ${logInventaris.inventarisPerawatan.merk.nama}',
+              style: const TextStyle(
+                  color: Color(0xFF099AA7), fontWeight: FontWeight.bold)),
+        ),
+        ListTile(
+          leading: const SizedBox(),
+          title: Text('Seri ${logInventaris.inventarisPerawatan.seri.nama}',
+              style: const TextStyle(
+                  color: Color(0xFF099AA7), fontWeight: FontWeight.bold)),
+        ),
+        ListTile(
+          leading: const SizedBox(),
+          title: Text('Status ${logInventaris.status}',
+              style: TextStyle(
+                  color: inventaris.status == 'aktif'
+                      ? const Color(0xFF099AA7)
+                      : Colors.red,
+                  fontWeight: FontWeight.bold)),
+        ),
+        // Add more details as needed
+      ],
     );
   }
 }
