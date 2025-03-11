@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:image/image.dart' as img;
@@ -13,6 +15,7 @@ import 'package:nh_manajemen_inventory/models/Unit.dart';
 import 'package:nh_manajemen_inventory/models/Wilayah.dart';
 import 'package:nh_manajemen_inventory/models/inventaris.dart';
 import 'package:nh_manajemen_inventory/models/log_inventaris_perawatan.dart';
+import 'package:nh_manajemen_inventory/models/perawatan.dart';
 import 'package:nh_manajemen_inventory/models/yayasan.dart';
 import 'package:nh_manajemen_inventory/providers/auth_provider.dart';
 import 'package:nh_manajemen_inventory/screens/home/home_screen.dart';
@@ -54,6 +57,10 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
   late Inventaris inventaris;
   late Yayasan yayasan;
   File? foto;
+  late DateTime currentDateTime;
+  late DateTime yesterday;
+  late DateTime endOfToday;
+  late dynamic data;
   final _formKey = GlobalKey<FormState>();
 
   List<Merk> filteredMerks = [];
@@ -137,6 +144,48 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
       filteredUnits.clear();
       filteredWilayahs.clear();
     });
+  }
+
+  Future<void> _fetchData(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        // Parse the JSON data
+        final resdata = json.decode(response.body);
+
+        setState(() {
+          data = resdata;
+
+          merks = fetchMerks(data);
+          seris = fetchSeris(data);
+          units = fetchUnits(data);
+          wilayahs = fetchWilayah(data);
+          inventaris = Inventaris.fromJson(data['data']['inventaris']);
+          yayasan = Yayasan.fromJson(data['data']['yayasan']);
+
+          penggunaController.text = inventaris.pengguna;
+          statusController.text = inventaris.status;
+          // merkController.text = inventaris.merk.nama;
+          // seriController.text = inventaris.seri.nama;
+          wilayahController.text = inventaris.wilayah.nama;
+          unitController.text = inventaris.unit.nama;
+          keteranganMetaController.text = inventaris.keterangan ?? '';
+
+          currentDateTime = DateTime.now();
+          yesterday = DateTime(currentDateTime.year, currentDateTime.month,
+              currentDateTime.day - 1);
+          endOfToday = DateTime(currentDateTime.year, currentDateTime.month,
+              currentDateTime.day + 1);
+        });
+      } else {
+        // Handle error
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Gagal Memuat Data!)')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: Gagal Memuat Data!)')));
+    }
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -256,6 +305,41 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     }
   }
 
+  Future<void> deletePerawatan(
+      int id, String kodeInventaris, String telepon) async {
+    String baseUrl = "https://assets.itnh.systems/api";
+    final response = await http.delete(
+      Uri.parse('$baseUrl/perawatan/$id'),
+    );
+
+    print(response.statusCode);
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Inventaris Berhasil Diupdate"),
+          backgroundColor: Color(0xFF099AA7),
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      await _fetchData(
+          "https://assets.itnh.systems/api/inventaris?kode=$kodeInventaris&telepon=$telepon");
+
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              // '${responseData.toString()}, '
+              'Hapus Gagal!'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   void _showConfirmationDialog(String idInventaris, String telepon) {
     showDialog(
       context: context,
@@ -312,12 +396,15 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
   @override
   void initState() {
     super.initState();
-    merks = fetchMerks(widget.data);
-    seris = fetchSeris(widget.data);
-    units = fetchUnits(widget.data);
-    wilayahs = fetchWilayah(widget.data);
-    inventaris = Inventaris.fromJson(widget.data['data']['inventaris']);
-    yayasan = Yayasan.fromJson(widget.data['data']['yayasan']);
+
+    data = widget.data;
+
+    merks = fetchMerks(data);
+    seris = fetchSeris(data);
+    units = fetchUnits(data);
+    wilayahs = fetchWilayah(data);
+    inventaris = Inventaris.fromJson(data['data']['inventaris']);
+    yayasan = Yayasan.fromJson(data['data']['yayasan']);
 
     penggunaController.text = inventaris.pengguna;
     statusController.text = inventaris.status;
@@ -326,6 +413,12 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     wilayahController.text = inventaris.wilayah.nama;
     unitController.text = inventaris.unit.nama;
     keteranganMetaController.text = inventaris.keterangan ?? '';
+
+    currentDateTime = DateTime.now();
+    yesterday = DateTime(
+        currentDateTime.year, currentDateTime.month, currentDateTime.day - 1);
+    endOfToday = DateTime(
+        currentDateTime.year, currentDateTime.month, currentDateTime.day + 1);
   }
 
   @override
@@ -427,21 +520,19 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
               metaDataText(
                   'Akumulasi Susut',
                   formatToIndonesian(
-                      double.parse(widget.data['data']['akumulasi_susut']))),
+                      double.parse(data['data']['akumulasi_susut']))),
               const SizedBox(
                 height: 10,
               ),
               metaDataText(
                   'Nilai Susut',
                   formatToIndonesian(
-                      double.parse(widget.data['data']['nilai_susut']))),
+                      double.parse(data['data']['nilai_susut']))),
               const SizedBox(
                 height: 10,
               ),
-              metaDataText(
-                  'Nilai Buku',
-                  formatToIndonesian(
-                      double.parse(widget.data['data']['nilai_buku']))),
+              metaDataText('Nilai Buku',
+                  formatToIndonesian(double.parse(data['data']['nilai_buku']))),
               const SizedBox(
                 height: 20,
               ),
@@ -791,7 +882,13 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                         ),
                         const Row(
                           children: [
-                            Text('List Inventaris', textAlign: TextAlign.start, style: TextStyle(color: Color(0xFF099AA7)),),
+                            Text(
+                              'List Inventaris',
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
+                                  color: Color(0xFF099AA7),
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ],
                         ),
                         for (int i = 0;
@@ -803,16 +900,124 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                             children: [
                               inventarisExpansionTile(inventaris
                                   .kartuPerawatan!.logInvetarisPerawatan![i]),
-                              const SizedBox(height: 10,),
+                              Container(
+                                width: double.infinity,
+                                decoration: const BoxDecoration(
+                                    border: Border(
+                                        top: BorderSide(
+                                            color: Color(0xFF099AA7)))),
+                              ),
+                              const SizedBox(
+                                height: 10,
+                              ),
                             ],
                           ),
-
                         const Row(
                           children: [
-                            Text('List Perawatan', textAlign: TextAlign.start, style: TextStyle(color: Color(0xFF099AA7)),),
+                            Text(
+                              'List Perawatan',
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
+                                  color: Color(0xFF099AA7),
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ],
                         ),
-                        // inventaris.kartuPerawatan
+                        if (inventaris.kartuPerawatan?.perawatans != null)
+                          for (int i = 0;
+                              i < inventaris.kartuPerawatan!.perawatans!.length;
+                              i++)
+                            Column(
+                              children: [
+                                perawatanTile(
+                                    inventaris.kartuPerawatan!.perawatans![i],
+                                    userData),
+                                Container(
+                                  width: double.infinity,
+                                  decoration: const BoxDecoration(
+                                      border: Border(
+                                          top: BorderSide(
+                                              color: Color(0xFF099AA7)))),
+                                ),
+                                const SizedBox(
+                                  height: 10,
+                                ),
+                              ],
+                            ),
+                        const Row(
+                          children: [
+                            Text(
+                              'Form Perawatan',
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
+                                  color: Color(0xFF099AA7),
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        updateFormTextField(
+                          penggunaController,
+                          inventaris.status == "nonaktif" ? false : true,
+                          'Tanggal',
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        updateFormSelectTextField(
+                            wilayahController,
+                            'Jenis Perawatan',
+                            wilayahs,
+                            filteredWilayahs,
+                            inventaris.status == "nonaktif" ? false : true,
+                            filterWilayah),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        textAreaTextField(
+                            keteranganController,
+                            "Keterangan Perawatan",
+                            inventaris.status == "nonaktif" ? true : false),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              backgroundColor: const Color(0xFF099AA7),
+                              padding: const EdgeInsets.all(15),
+                            ),
+                            onPressed: inventaris.status == "aktif"
+                                ? () => _showConfirmationDialog(
+                                inventaris.id.toString(), userData!['telepon'])
+                                : null,
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.post_add,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Text(
+                                  'Submit Perawatan',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
                       ],
                     )
                   : const SizedBox(),
@@ -1021,7 +1226,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
         ),
         ListTile(
           leading: const SizedBox(),
-          title: Text('Status ${logInventaris.status}',
+          title: Text('Status: ${logInventaris.status.toUpperCase()}',
               style: TextStyle(
                   color: inventaris.status == 'aktif'
                       ? const Color(0xFF099AA7)
@@ -1029,6 +1234,93 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                   fontWeight: FontWeight.bold)),
         ),
         // Add more details as needed
+      ],
+    );
+  }
+
+  Widget perawatanTile(Perawatan perawatan, dynamic userData) {
+    return ExpansionTile(
+      title: Text(perawatan.keterangan,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+              color: Color(0xFF099AA7), fontWeight: FontWeight.w500)),
+      leading: DateFormat("dd-MM-yyyy")
+                  .parse(perawatan.createdAt)
+                  .isAfter(yesterday) &&
+              DateFormat("dd-MM-yyyy")
+                  .parse(perawatan.createdAt)
+                  .isBefore(endOfToday)
+          ? IconButton(
+              onPressed: DateFormat("dd-MM-yyyy")
+                          .parse(perawatan.createdAt)
+                          .isAfter(yesterday) &&
+                      DateFormat("dd-MM-yyyy")
+                          .parse(perawatan.createdAt)
+                          .isBefore(endOfToday)
+                  ? () async {
+                      showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text(
+                                'Konfirmasi Delete',
+                                style: TextStyle(
+                                    color: Color(0xFF099AA7),
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              content: const Text(
+                                'Data perewatan ini akan dihapus! Lanjutkan?',
+                                style: TextStyle(
+                                  color: Color(0xFF099AA7),
+                                ),
+                              ),
+                              actions: <Widget>[
+                                TextButton(
+                                  child: const Text('Cancel',
+                                      style: TextStyle(color: Colors.green)),
+                                  onPressed: () {
+                                    Navigator.of(context)
+                                        .pop(); // Close the dialog
+                                  },
+                                ),
+                                TextButton(
+                                  child: const Text(
+                                    'Hapus',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                  onPressed: () {
+                                    // Handle form submission
+                                    deletePerawatan(perawatan.id,
+                                        inventaris.kode, userData['telepon']);
+
+                                    if (_formKey.currentState!.validate()) {
+                                      Navigator.of(context)
+                                          .pop(); // Close the dialog
+                                    }
+                                  },
+                                ),
+                              ],
+                            );
+                          });
+                    }
+                  : null,
+              icon: const Icon(
+                Icons.delete,
+                color: Colors.red,
+              ))
+          : null,
+      children: [
+        ListTile(
+          title: Text(perawatan.keterangan,
+              style: const TextStyle(
+                  color: Color(0xFF099AA7), fontWeight: FontWeight.w500)),
+          subtitle:
+              Text('${perawatan.createdAt} | ${perawatan.jenisPerawatan.nama}',
+                  style: const TextStyle(
+                    color: Color(0xFF099AA7),
+                  )),
+        ),
       ],
     );
   }
