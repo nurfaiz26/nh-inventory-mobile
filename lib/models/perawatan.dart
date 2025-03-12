@@ -17,7 +17,6 @@ class Perawatan {
   });
 
   factory Perawatan.fromJson(Map<String, dynamic> json) {
-    print(json);
     return Perawatan(
       id: json['id'],
       keterangan: json['keterangan'],
