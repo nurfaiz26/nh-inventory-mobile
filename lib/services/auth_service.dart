@@ -22,6 +22,7 @@ class AuthService {
       await prefs.setInt('status', data['data']['status']);
       await prefs.setString('level', data['data']['level']);
       await prefs.setInt('gudang_id', data['data']['gudang_id']);
+      await prefs.setString('log_date', DateTime.now().toIso8601String());
       return true;
     } else {
       return false;
@@ -36,6 +37,7 @@ class AuthService {
     await prefs.remove('status');
     await prefs.remove('level');
     await prefs.remove('gudang_id');
+    await prefs.remove('log_date');
   }
 
   Future<Map<String, dynamic>?> getUserData() async {
@@ -46,6 +48,7 @@ class AuthService {
     final status = prefs.getInt('status');
     final level = prefs.getString('level');
     final gudangId = prefs.getInt('gudang_id');
+    final logDate = prefs.getString('log_date');
 
     if (id != null &&
         nama != null &&
