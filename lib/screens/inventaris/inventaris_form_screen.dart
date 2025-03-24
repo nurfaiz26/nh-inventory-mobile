@@ -1240,23 +1240,23 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
 
   Widget perawatanTile(Perawatan perawatan, dynamic userData) {
     return ExpansionTile(
-      title: Text(perawatan.keterangan,
+      title: Text(perawatan.keterangan ?? '',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
               color: Color(0xFF099AA7), fontWeight: FontWeight.w500)),
       leading: DateFormat("dd-MM-yyyy")
-                  .parse(perawatan.createdAt)
+                  .parse(perawatan.createdAt ?? DateTime(1900, 1, 1).toString())
                   .isAfter(yesterday) &&
               DateFormat("dd-MM-yyyy")
-                  .parse(perawatan.createdAt)
+                  .parse(perawatan.createdAt ?? DateTime(1900, 1, 1).toString())
                   .isBefore(endOfToday)
           ? IconButton(
               onPressed: DateFormat("dd-MM-yyyy")
-                          .parse(perawatan.createdAt)
+                          .parse(perawatan.createdAt ?? DateTime(1900, 1, 1).toString())
                           .isAfter(yesterday) &&
                       DateFormat("dd-MM-yyyy")
-                          .parse(perawatan.createdAt)
+                          .parse(perawatan.createdAt ?? DateTime(1900, 1, 1).toString())
                           .isBefore(endOfToday)
                   ? () async {
                       showDialog(
@@ -1312,11 +1312,11 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
           : null,
       children: [
         ListTile(
-          title: Text(perawatan.keterangan,
+          title: Text(perawatan.keterangan ?? '',
               style: const TextStyle(
                   color: Color(0xFF099AA7), fontWeight: FontWeight.w500)),
           subtitle:
-              Text('${perawatan.createdAt} | ${perawatan.jenisPerawatan.nama}',
+              Text('${perawatan.createdAt} | ${perawatan.jenisPerawatan != null ? perawatan.jenisPerawatan!.nama : '--'}',
                   style: const TextStyle(
                     color: Color(0xFF099AA7),
                   )),
