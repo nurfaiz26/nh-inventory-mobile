@@ -14,6 +14,7 @@ import 'package:nh_manajemen_inventory/models/Seri.dart';
 import 'package:nh_manajemen_inventory/models/Unit.dart';
 import 'package:nh_manajemen_inventory/models/Wilayah.dart';
 import 'package:nh_manajemen_inventory/models/inventaris.dart';
+import 'package:nh_manajemen_inventory/models/jenis_perawatan.dart';
 import 'package:nh_manajemen_inventory/models/log_inventaris_perawatan.dart';
 import 'package:nh_manajemen_inventory/models/perawatan.dart';
 import 'package:nh_manajemen_inventory/models/yayasan.dart';
@@ -41,6 +42,11 @@ List<Wilayah> fetchWilayah(dynamic data) {
   return jsonList.map((json) => Wilayah.fromJson(json)).toList();
 }
 
+List<JenisPerawatan> fetchJeniPerawatan(dynamic data) {
+  final List<dynamic> jsonList = data['jenis_perawatans'];
+  return jsonList.map((json) => JenisPerawatan.fromJson(json)).toList();
+}
+
 class InventarisFormScreen extends StatefulWidget {
   final dynamic data;
   const InventarisFormScreen({super.key, required this.data});
@@ -54,6 +60,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
   late List<Seri> seris;
   late List<Unit> units;
   late List<Wilayah> wilayahs;
+  late List<JenisPerawatan> jenisPerawatans;
   late Inventaris inventaris;
   late Yayasan yayasan;
   File? foto;
@@ -62,11 +69,14 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
   late DateTime endOfToday;
   late dynamic data;
   final _formKey = GlobalKey<FormState>();
+  DateTime? _selectedDate;
+  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
 
   List<Merk> filteredMerks = [];
   List<Seri> filteredSeris = [];
   List<Unit> filteredUnits = [];
   List<Wilayah> filteredWilayahs = [];
+  List<JenisPerawatan> filteredJenisPerawatans = [];
 
   TextEditingController penggunaController = TextEditingController();
   TextEditingController statusController = TextEditingController();
@@ -76,6 +86,9 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
   TextEditingController unitController = TextEditingController();
   TextEditingController keteranganController = TextEditingController();
   TextEditingController keteranganMetaController = TextEditingController();
+  TextEditingController jenisPerawatanController = TextEditingController();
+  TextEditingController tanggalPerawatanController = TextEditingController();
+  TextEditingController keteranganPerawatanController = TextEditingController();
 
   void filterMerk(String query) {
     if (query.isNotEmpty) {
@@ -137,12 +150,28 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     }
   }
 
+  void filterJenisPerawatan(String query) {
+    if (query.isNotEmpty) {
+      setState(() {
+        filteredJenisPerawatans = jenisPerawatans
+            .where(
+                (data) => data.nama.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      });
+    } else {
+      setState(() {
+        filteredJenisPerawatans = [];
+      });
+    }
+  }
+
   void clearFilteredData() {
     setState(() {
       // filteredMerks.clear();
       // filteredSeris.clear();
       filteredUnits.clear();
       filteredWilayahs.clear();
+      filteredJenisPerawatans.clear();
     });
   }
 
@@ -160,6 +189,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
           seris = fetchSeris(data);
           units = fetchUnits(data);
           wilayahs = fetchWilayah(data);
+          jenisPerawatans = fetchJeniPerawatan(data);
           inventaris = Inventaris.fromJson(data['data']['inventaris']);
           yayasan = Yayasan.fromJson(data['data']['yayasan']);
 
@@ -273,9 +303,6 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
 
     final responseData = await response.stream.bytesToString();
 
-    print(request.files);
-    print(responseData);
-
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -298,6 +325,85 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
           content: Text(
               // '${responseData.toString()}, '
               'Pastikan Isi Input Sesuai Dengan Pilihan Yang Tersedia!'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> postPerawtan(String idKartuPerawatan, String telepon,Inventaris inventaris) async {
+    final uri = Uri.parse(
+        'https://assets.itnh.systems/api/perawatan');
+
+    if (keteranganPerawatanController.text == '' ||
+        tanggalPerawatanController.text == '' ||
+        jenisPerawatanController.text == ''
+        ) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Data Perawatan Tidak Lengkap"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      return;
+    }
+
+    if (inventaris.status == 'nonaktif') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Data Inventaris Non Aktif!"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      return;
+    }
+
+    if (inventaris.kartuPerawatan == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Data Inventaris Non Aktif!"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      return;
+    }
+
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'tanggal': tanggalPerawatanController.text,
+        'jenis_perawatan': jenisPerawatanController.text,
+        'kartu_perawatan_id': inventaris.kartuPerawatan!.id,
+        'keterangan': keteranganPerawatanController.text,
+        'telepon': telepon,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Data Perawatan Berhasil Diupdate"),
+          backgroundColor: Color(0xFF099AA7),
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      await _fetchData(
+          "https://assets.itnh.systems/api/inventaris?kode=${inventaris.kode}&telepon=$telepon");
+
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Data Perawatan Gagal Dibuat!"),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
         ),
@@ -383,6 +489,49 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     );
   }
 
+  void _showConfirmationPerawatanDialog(String idKartuPerawatan, String telepon, Inventaris inventaris) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Konfirmasi Perawatan',
+            style: TextStyle(
+                color: Color(0xFF099AA7), fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'Semua update akan tercatat beserta informasi peng-update! Lanjutkan?',
+            style: TextStyle(
+              color: Color(0xFF099AA7),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: const Text(
+                'Submit',
+                style: TextStyle(color: Colors.green),
+              ),
+              onPressed: () {
+                // Handle form submission
+                postPerawtan(idKartuPerawatan, telepon, inventaris);
+
+                if (_formKey.currentState!.validate()) {
+                  Navigator.of(context).pop(); // Close the dialog
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   String formatToIndonesian(double number) {
     // Create a NumberFormat for Indonesian locale
     final NumberFormat formatter = NumberFormat.currency(
@@ -391,6 +540,23 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
       decimalDigits: 2,
     );
     return "Rp. ${formatter.format(number)}";
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        tanggalPerawatanController.text = DateFormat("yyyy-MM-dd")
+            .format(_selectedDate ?? DateTime(1900, 1, 1))
+            .toString();
+      });
+    }
   }
 
   @override
@@ -403,6 +569,7 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
     seris = fetchSeris(data);
     units = fetchUnits(data);
     wilayahs = fetchWilayah(data);
+    jenisPerawatans = fetchJeniPerawatan(data);
     inventaris = Inventaris.fromJson(data['data']['inventaris']);
     yayasan = Yayasan.fromJson(data['data']['yayasan']);
 
@@ -958,62 +1125,104 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                         const SizedBox(
                           height: 20,
                         ),
-                        updateFormTextField(
-                          penggunaController,
-                          inventaris.status == "nonaktif" ? false : true,
-                          'Tanggal',
-                        ),
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        updateFormSelectTextField(
-                            wilayahController,
-                            'Jenis Perawatan',
-                            wilayahs,
-                            filteredWilayahs,
-                            inventaris.status == "nonaktif" ? false : true,
-                            filterWilayah),
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        textAreaTextField(
-                            keteranganController,
-                            "Keterangan Perawatan",
-                            inventaris.status == "nonaktif" ? true : false),
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                              ),
-                              backgroundColor: const Color(0xFF099AA7),
-                              padding: const EdgeInsets.all(15),
-                            ),
-                            onPressed: inventaris.status == "aktif"
-                                ? () => _showConfirmationDialog(
-                                inventaris.id.toString(), userData!['telepon'])
-                                : null,
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                        Stack(
+                          children: [
+                            Column(
                               children: [
-                                Icon(
-                                  Icons.post_add,
-                                  color: Colors.white,
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: updateFormTextField(
+                                        tanggalPerawatanController,
+                                        inventaris.status == "nonaktif" ? false : true,
+                                        'Tanggal Perawatan (Y-M-D)',
+                                        isReadOnly: true,
+                                      ),
+                                    ),
+                                    const SizedBox(
+                                      width: 10,
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF099AA7),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10.0),
+                                        ),
+                                        padding: const EdgeInsets.all(15),
+                                      ),
+                                      onPressed: () => _selectDate(context),
+                                      child: const Icon(
+                                        Icons.date_range,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 20,
+                                ),
+                                updateFormSelectTextField(
+                                    jenisPerawatanController,
+                                    'Jenis Perawatan',
+                                    jenisPerawatans,
+                                    filteredJenisPerawatans,
+                                    inventaris.status == "nonaktif" ? false : true,
+                                    filterJenisPerawatan),
+                                const SizedBox(
+                                  height: 20,
+                                ),
+                                textAreaTextField(
+                                    keteranganPerawatanController,
+                                    "Keterangan Perawatan",
+                                    inventaris.status == "nonaktif" ? true : false),
+                                const SizedBox(
+                                  height: 20,
                                 ),
                                 SizedBox(
-                                  width: 10,
-                                ),
-                                Text(
-                                  'Submit Perawatan',
-                                  style: TextStyle(color: Colors.white),
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10.0),
+                                      ),
+                                      backgroundColor: const Color(0xFF099AA7),
+                                      padding: const EdgeInsets.all(15),
+                                    ),
+                                    onPressed: inventaris.status == "aktif"
+                                        ? () => _showConfirmationPerawatanDialog(
+                                        inventaris.kartuPerawatan != null ? inventaris.kartuPerawatan!.id.toString() : '',
+                                        userData!['telepon'],
+                                        inventaris
+                                    )
+                                        : null,
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.post_add,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(
+                                          width: 10,
+                                        ),
+                                        Text(
+                                          'Submit Perawatan',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
+                            Column(
+                              children: [
+                                const SizedBox(height: 140,),
+                                updateFormSelectList(jenisPerawatanController,
+                                    jenisPerawatans, filteredJenisPerawatans),
+                              ],
+                            )
+                          ],
                         ),
                         const SizedBox(
                           height: 20,
@@ -1070,10 +1279,12 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
   }
 
   Widget updateFormTextField(
-      TextEditingController controller, bool isEnabled, String label) {
+      TextEditingController controller, bool isEnabled, String label,
+      {bool isReadOnly = false}) {
     return TextField(
       controller: controller,
       enabled: isEnabled,
+      readOnly: isReadOnly,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.grey),
@@ -1253,10 +1464,12 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
                   .isBefore(endOfToday)
           ? IconButton(
               onPressed: DateFormat("dd-MM-yyyy")
-                          .parse(perawatan.createdAt ?? DateTime(1900, 1, 1).toString())
+                          .parse(perawatan.createdAt ??
+                              DateTime(1900, 1, 1).toString())
                           .isAfter(yesterday) &&
                       DateFormat("dd-MM-yyyy")
-                          .parse(perawatan.createdAt ?? DateTime(1900, 1, 1).toString())
+                          .parse(perawatan.createdAt ??
+                              DateTime(1900, 1, 1).toString())
                           .isBefore(endOfToday)
                   ? () async {
                       showDialog(
@@ -1315,11 +1528,11 @@ class _InventarisFormScreenState extends State<InventarisFormScreen> {
           title: Text(perawatan.keterangan ?? '',
               style: const TextStyle(
                   color: Color(0xFF099AA7), fontWeight: FontWeight.w500)),
-          subtitle:
-              Text('${perawatan.createdAt} | ${perawatan.jenisPerawatan != null ? perawatan.jenisPerawatan!.nama : '--'}',
-                  style: const TextStyle(
-                    color: Color(0xFF099AA7),
-                  )),
+          subtitle: Text(
+              '${perawatan.createdAt} | ${perawatan.jenisPerawatan != null ? perawatan.jenisPerawatan!.nama : '--'}',
+              style: const TextStyle(
+                color: Color(0xFF099AA7),
+              )),
         ),
       ],
     );
