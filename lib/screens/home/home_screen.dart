@@ -22,10 +22,16 @@ class HomeScreen extends StatelessWidget {
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-
+        // try{
+        //   print((jsonData['data'] as List)[0]);
+        //
+        // } catch (e){
+        //   print(e);
+        // }
         List<LogTransaksi> logs = (jsonData['data'] as List)
             .map((data) => LogTransaksi.fromJson(data))
             .toList();
+
         return logs;
       } else {
         throw Exception('Failed to load data');

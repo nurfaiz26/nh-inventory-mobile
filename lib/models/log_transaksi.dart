@@ -10,7 +10,6 @@ class LogTransaksi {
   final int userId;
   final int gudangId;
   final int? gudangTujuanId;
-  final int? stokId;
   final int transaksiId;
   final String createdAt;
   final String updatedAt;
@@ -26,7 +25,6 @@ class LogTransaksi {
     required this.userId,
     required this.gudangId,
     this.gudangTujuanId,
-    this.stokId,
     required this.transaksiId,
     required this.createdAt,
     required this.updatedAt,
@@ -37,20 +35,19 @@ class LogTransaksi {
 
   factory LogTransaksi.fromJson(Map<String, dynamic> json) {
     return LogTransaksi(
-      id: json['id'],
-      jumlah: json['jumlah'],
-      totalHarga: json['total_harga'],
-      status: json['status'],
-      userId: json['user_id'],
-      gudangId: json['gudang_id'],
-      gudangTujuanId: json['gudang_tujuan_id'],
-      stokId: json['stok_id'],
-      transaksiId: json['transaksi_id'],
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
-      sisa: json['sisa'],
-      inventaris: Inventaris.fromJson(json['inventaris']),
-      transaksi: Transaksi.fromJson(json['transaksi']),
+      id: json['log']['id'],
+      jumlah: json['log']['jumlah'],
+      totalHarga: json['log']['total_harga'],
+      status: json['log']['status'],
+      userId: json['log']['user_id'],
+      gudangId: json['log']['gudang_id'],
+      gudangTujuanId: json['log']['gudang_tujuan_id'],
+      transaksiId: json['log']['transaksi_id'],
+      createdAt: json['log']['created_at'],
+      updatedAt: json['log']['updated_at'],
+      sisa: json['log']['sisa'],
+      inventaris: Inventaris.fromJson(json['log']['inventaris']),
+      transaksi: Transaksi.fromJson(json['log']['transaksi']),
     );
   }
 }
